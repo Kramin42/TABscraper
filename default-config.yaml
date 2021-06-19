@@ -1,0 +1,5 @@
+# Do not edit default-config.yaml, copy to config.yaml and edit that file
+matches-url: https://www.tab.co.nz/sports/competition/10804/matches
+tomorrow-games-path: data/tomorrow.csv
+all-games-path: data/all.csv
+loading-time: 5
