@@ -2,7 +2,7 @@
 
 	pip install -r requirements.txt
 
-Also requires chromedriver installed and in the system PATH.
+Also requires chromedriver installed and in the system PATH. See https://www.selenium.dev/documentation/en/webdriver/driver_requirements/.
 
 ### Running
 
