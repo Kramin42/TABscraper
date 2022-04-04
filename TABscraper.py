@@ -1,6 +1,7 @@
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException
 from time import sleep
 import datetime as dt
 import yaml
@@ -57,42 +58,50 @@ try:
 	sleep(CONFIG['loading-time'])
 
 	#today_heading = browser.find_element_by_class_name('heading--timeband--today')
-	tomorrow_heading = browser.find_element_by_class_name('heading--timeband--tomorrow')
+	success = True
+	try:
+		tomorrow_heading = browser.find_element_by_class_name('heading--timeband--tomorrow')
 
-	#for heading in [today_heading, tomorrow_heading]:
-	event_list = tomorrow_heading.find_element_by_class_name('event-list__content')
-	for item in event_list.find_elements_by_tag_name("li"):
-		mbcs = item.find_elements_by_class_name('market__body_col')
-		if len(mbcs)==0:
-			continue
-		el_title_A = mbcs[0].find_element_by_class_name('button--outcome__text-title')
-		el_price_A = mbcs[0].find_element_by_class_name('button--outcome__price')
-		el_title_B = mbcs[1].find_element_by_class_name('button--outcome__text-title')
-		el_price_B = mbcs[1].find_element_by_class_name('button--outcome__price')
-		el_time = item.find_element_by_class_name('event-card__event-time__date-time')
-		str_time = el_time.text
-		if not str_time.startswith('Tomorrow '):
-			print(f'invalid time string: {str_time}')
-			continue
-		game_time = dt.datetime.strptime(str_time.replace('Tomorrow ', ''), '%H.%M%p').time()
-		game_dt = dt.datetime.combine(tomorrow_datetime, game_time)
-		games.append(Game(
-			date=game_dt.isoformat(),
-			home_team_name=el_title_A.text,
-			away_team_name=el_title_B.text,
-			home_team_payout=el_price_A.text,
-			away_team_payout=el_price_B.text))
-		print(f'{el_title_A.text} ({el_price_A.text}) vs {el_title_B.text} ({el_price_B.text}) on {game_dt.strftime("%d/%m/%Y")}')
+		#for heading in [today_heading, tomorrow_heading]:
+		event_list = tomorrow_heading.find_element_by_class_name('event-list__content')
+		for item in event_list.find_elements_by_tag_name("li"):
+			mbcs = item.find_elements_by_class_name('market__body_col')
+			if len(mbcs)==0:
+				continue
+			try:
+				el_title_A = mbcs[0].find_element_by_class_name('button--outcome__text')
+				el_price_A = mbcs[0].find_element_by_class_name('button--outcome__price')
+				el_title_B = mbcs[1].find_element_by_class_name('button--outcome__text')
+				el_price_B = mbcs[1].find_element_by_class_name('button--outcome__price')
+				el_time = item.find_element_by_class_name('event-card__event-time__date-time')
+			except NoSuchElementException as e:
+				print(e)
+				continue
+			str_time = el_time.text
+			if not str_time.startswith('Tomorrow '):
+				print(f'invalid time string: {str_time}')
+				continue
+			game_time = dt.datetime.strptime(str_time.replace('Tomorrow ', ''), '%H.%M%p').time()
+			game_dt = dt.datetime.combine(tomorrow_datetime, game_time)
+			games.append(Game(
+				date=game_dt.isoformat(),
+				home_team_name=el_title_A.text,
+				away_team_name=el_title_B.text,
+				home_team_payout=el_price_A.text,
+				away_team_payout=el_price_B.text))
+			print(f'{el_title_A.text} ({el_price_A.text}) vs {el_title_B.text} ({el_price_B.text}) on {game_dt.strftime("%d/%m/%Y")}')
+	except Exception as e:
+		success = False
+		print(e)
 
 	print(games)
 	with open(CONFIG['tomorrow-games-path'], 'w') as f:
 		f.write(games_to_csv(games, header=True))
 
-	write_header = not pathlib.Path(CONFIG['all-games-path']).is_file()
-	with open(CONFIG['all-games-path'], 'a') as f:
-		f.write(games_to_csv(games, write_header))
-
-	# do stuff with games list
+	if success:
+		write_header = not pathlib.Path(CONFIG['all-games-path']).is_file()
+		with open(CONFIG['all-games-path'], 'a') as f:
+			f.write(games_to_csv(games, write_header))
 finally:
 	#input('press enter to finish')
 	browser.quit()
